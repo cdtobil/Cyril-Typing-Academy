@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyForge — Master the Keyboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --accent3: #ff6b47;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --correct: #4ade80;
+    --wrong: #f87171;
+    --pending: #3d3d50;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb.one { background: var(--accent); top: -200px; left: -100px; }
+  .glow-orb.two { background: var(--accent2); bottom: -200px; right: -100px; }
+
+  #app { position: relative; z-index: 1; }
+
+  /* NAV */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    background: rgba(10,10,15,0.8);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text); }
+
+  .nav-tabs {
+    display: flex; gap: 0.3rem;
+  }
+  .nav-tab {
+    padding: 0.45rem 1rem; border: none; background: transparent;
+    color: var(--muted); font-family: 'Syne', sans-serif;
+    font-size: 0.85rem; cursor: pointer; border-radius: 6px;
+    transition: all 0.2s; font-weight: 600;
+  }
+  .nav-tab.active, .nav-tab:hover {
+    background: var(--surface2); color: var(--text);
+  }
+  .nav-tab.active { color: var(--accent); }
+
+  .nav-right {
+    display: flex; align-items: center; gap: 1rem;
+    font-family: 'Space Mono', monospace; font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .streak-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 0.4rem 0.8rem; border-radius: 20px;
+  }
+  .streak-badge .fire { font-size: 1rem; }
+  .streak-badge .streak-num { color: var(--accent); font-weight: 700; }
+
+  /* PAGES */
+  .page { display: none; padding: 2rem 2.5rem; max-width: 1100px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header { margin-bottom: 2.5rem; }
+  .page-header h1 {
+    font-size: 2.5rem; font-weight: 800; letter-spacing: -0.04em;
+    margin-bottom: 0.4rem;
+  }
+  .page-header p { color: var(--muted); font-size: 1rem; }
+  .accent-dot { color: var(--accent); }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.2rem 1.5rem;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+  .stat-card.blue::before { background: var(--accent2); }
+  .stat-card.red::before { background: var(--accent3); }
+  .stat-card.green::before { background: var(--correct); }
+  .stat-label {
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.4rem; font-family: 'Space Mono', monospace;
+  }
+  .stat-value {
+    font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+  }
+  .stat-unit { font-size: 0.8rem; color: var(--muted); font-weight: 400; margin-left: 0.2rem; }
+
+  /* LESSON SELECTOR */
+  .section-title {
+    font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); font-family: 'Space Mono', monospace;
+    margin-bottom: 1rem; font-weight: 400;
+  }
+
+  .lesson-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .lesson-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.4rem; cursor: pointer;
+    transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .lesson-card:hover {
+    border-color: var(--accent); transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(232,255,71,0.08);
+  }
+  .lesson-card.locked { opacity: 0.4; cursor: not-allowed; }
+  .lesson-card.locked:hover { transform: none; border-color: var(--border); box-shadow: none; }
+  .lesson-card.completed { border-color: var(--correct); }
+  .lesson-num {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    color: var(--muted); margin-bottom: 0.5rem;
+  }
+  .lesson-name { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+  .lesson-desc { font-size: 0.8rem; color: var(--muted); }
+  .lesson-badge {
+    position: absolute; top: 1rem; right: 1rem;
+    font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 20px;
+    font-family: 'Space Mono', monospace; letter-spacing: 0.05em;
+  }
+  .lesson-badge.done { background: rgba(74,222,128,0.15); color: var(--correct); }
+  .lesson-badge.locked-b { background: var(--surface2); color: var(--muted); }
+  .lesson-badge.new-b { background: rgba(232,255,71,0.15); color: var(--accent); }
+  .lesson-progress-bar {
+    position: absolute; bottom: 0; left: 0; height: 2px;
+    background: var(--accent); transition: width 0.5s;
+  }
+
+  /* TYPING AREA */
+  .typing-container {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;
+  }
+  .typing-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .typing-meta-left { display: flex; gap: 2rem; }
+  .live-stat {
+    display: flex; flex-direction: column;
+  }
+  .live-stat-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-family: 'Space Mono', monospace; }
+  .live-stat-val {
+    font-size: 1.4rem; font-weight: 800; font-family: 'Space Mono', monospace;
+    color: var(--accent);
+  }
+  .live-stat-val.blue { color: var(--accent2); }
+  .live-stat-val.green { color: var(--correct); }
+
+  .timer-ring {
+    width: 60px; height: 60px; position: relative;
+  }
+  .timer-ring svg { transform: rotate(-90deg); }
+  .timer-ring circle { fill: none; stroke-width: 4; }
+  .timer-ring .bg { stroke: var(--border); }
+  .timer-ring .fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+  .timer-val {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-family: 'Space Mono', monospace; font-size: 0.9rem; font-weight: 700;
+    color: var(--text);
+  }
+
+  .text-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.2rem; line-height: 2;
+    letter-spacing: 0.04em;
+    min-height: 100px;
+    word-break: break-all;
+    user-select: none;
+    margin-bottom: 1.5rem;
+  }
+  .char { position: relative; }
+  .char.correct { color: var(--correct); }
+  .char.wrong {
+    color: var(--wrong);
+    text-decoration: underline;
+    text-decoration-color: var(--wrong);
+  }
+  .char.pending { color: var(--pending); }
+  .char.current {
+    color: var(--text);
+    border-bottom: 2px solid var(--accent);
+    animation: blink 1s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { border-color: var(--accent); }
+    50% { border-color: transparent; }
+  }
+
+  #typing-input {
+    position: absolute; opacity: 0; pointer-events: none;
+    width: 1px; height: 1px;
+  }
+
+  .click-to-start {
+    text-align: center; padding: 1rem;
+    color: var(--muted); font-size: 0.85rem;
+    font-family: 'Space Mono', monospace;
+    border: 1px dashed var(--border); border-radius: 8px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .click-to-start:hover { border-color: var(--accent); color: var(--accent); }
+
+  .typing-controls {
+    display: flex; gap: 1rem; align-items: center;
+    margin-top: 1rem;
+  }
+  .btn {
+    padding: 0.6rem 1.4rem; border-radius: 8px; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    transition: all 0.2s; border: none;
+  }
+  .btn-primary {
+    background: var(--accent); color: #0a0a0f;
+  }
+  .btn-primary:hover { background: #f0ff70; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  .mode-selector {
+    display: flex; gap: 0.3rem; background: var(--surface2);
+    border-radius: 8px; padding: 0.25rem; margin-left: auto;
+  }
+  .mode-btn {
+    padding: 0.35rem 0.8rem; border-radius: 6px; border: none;
+    background: transparent; color: var(--muted);
+    font-family: 'Space Mono', monospace; font-size: 0.72rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .mode-btn.active { background: var(--accent); color: #0a0a0f; font-weight: 700; }
+
+  /* RESULT OVERLAY */
+  .result-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(10px);
+    align-items: center; justify-content: center;
+  }
+  .result-overlay.show { display: flex; }
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3rem; max-width: 520px; width: 90%;
+    text-align: center; position: relative;
+    animation: slideUp 0.4s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.3rem; }
+  .result-subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .result-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .result-stat { background: var(--surface2); border-radius: 10px; padding: 1rem; }
+  .result-stat-val { font-size: 1.8rem; font-weight: 800; }
+  .result-stat-label { font-size: 0.65rem; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+  .result-actions { display: flex; gap: 1rem; justify-content: center; }
+
+  /* KEYBOARD VISUAL */
+  .keyboard-section { margin-top: 1.5rem; }
+  .keyboard-visual {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.2rem; display: inline-flex;
+    flex-direction: column; gap: 0.4rem; width: 100%;
+  }
+  .key-row { display: flex; gap: 0.3rem; justify-content: center; }
+  .key {
+    min-width: 38px; height: 38px; border-radius: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--muted); position: relative; transition: all 0.1s;
+    cursor: default; user-select: none;
+  }
+  .key.wide-1 { min-width: 56px; }
+  .key.wide-2 { min-width: 68px; }
+  .key.wide-3 { min-width: 84px; }
+  .key.wide-space { min-width: 200px; }
+  .key.highlight {
+    background: rgba(232,255,71,0.2); border-color: var(--accent);
+    color: var(--accent); transform: scale(1.05);
+  }
+  .key.pressed {
+    background: var(--accent); color: #0a0a0f;
+    transform: scale(0.95); border-color: var(--accent);
+  }
+  .key.finger-l0 { --fcolor: #ff6b6b; }
+  .key.finger-l1 { --fcolor: #ffa96b; }
+  .key.finger-l2 { --fcolor: #ffec6b; }
+  .key.finger-l3 { --fcolor: #6bffb8; }
+  .key.finger-r0 { --fcolor: #6bc8ff; }
+  .key.finger-r1 { --fcolor: #b86bff; }
+  .key.finger-r2 { --fcolor: #ff6bc8; }
+  .key.finger-r3 { --fcolor: #6bffec; }
+  .key.show-finger { border-color: var(--fcolor); }
+  .key.show-finger::after {
+    content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--fcolor);
+  }
+
+  /* FINGER GUIDE */
+  .finger-guide {
+    display: flex; gap: 0.5rem; align-items: center; margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .finger-item {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.72rem; color: var(--muted); font-family: 'Space Mono', monospace;
+  }
+  .finger-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+
+  /* PROGRESS PAGE */
+  .history-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.4rem;
+    display: grid; grid-template-columns: 1fr auto auto auto auto;
+    gap: 1.5rem; align-items: center;
+    font-family: 'Space Mono', monospace; font-size: 0.8rem;
+  }
+  .history-item .lesson-name-h { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.9rem; }
+  .history-item .date { color: var(--muted); font-size: 0.7rem; }
+  .h-stat { display: flex; flex-direction: column; align-items: center; }
+  .h-stat-val { font-weight: 700; color: var(--accent2); }
+  .h-stat-l { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; }
+
+  /* WPM Chart */
+  .chart-container {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .chart-title { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 1rem; }
+  canvas { width: 100% !important; max-height: 180px; }
+
+  /* SETTINGS PAGE */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .settings-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem;
+  }
+  .settings-card h3 { font-weight: 700; font-size: 1rem; margin-bottom: 1rem; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.7rem 0; border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 0.85rem; }
+  .setting-desc { font-size: 0.72rem; color: var(--muted); margin-top: 0.1rem; }
+
+  .toggle {
+    position: relative; width: 40px; height: 22px;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: var(--border); border-radius: 22px; transition: 0.3s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute;
+    height: 16px; width: 16px; left: 3px; bottom: 3px;
+    background: var(--muted); border-radius: 50%; transition: 0.3s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); }
+  .toggle input:checked + .toggle-slider::before {
+    transform: translateX(18px); background: #0a0a0f;
+  }
+
+  select.setting-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Space Mono', monospace;
+    font-size: 0.78rem; padding: 0.35rem 0.7rem;
+    border-radius: 6px; outline: none;
+  }
+
+  /* RESPONSIVE FIX */
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .lesson-grid { grid-template-columns: 1fr; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .result-stats { grid-template-columns: repeat(2, 1fr); }
+    nav { flex-wrap: wrap; gap: 0.5rem; }
+  }
+
+  .empty-state {
+    text-align: center; padding: 3rem;
+    color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.85rem;
+  }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed; width: 8px; height: 8px;
+    z-index: 300; pointer-events: none;
+    animation: confettiFall 2s ease forwards;
+  }
+  @keyframes confettiFall {
+    0% { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="glow-orb one"></div>
+  <div class="glow-orb two"></div>
+
+  <nav>
+    <div class="logo">Key<span>Forge</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('home')">Dashboard</button>
+      <button class="nav-tab" onclick="showPage('lessons')">Lessons</button>
+      <button class="nav-tab" onclick="showPage('practice')">Free Practice</button>
+      <button class="nav-tab" onclick="showPage('progress')">Progress</button>
+      <button class="nav-tab" onclick="showPage('settings')">Settings</button>
+    </div>
+    <div class="nav-right">
+      <div class="streak-badge">
+        <span class="fire">🔥</span>
+        <span class="streak-num" id="streak-display">0</span>
+        <span>day streak</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-home">
+    <div class="page-header">
+      <h1>Welcome back<span class="accent-dot">.</span></h1>
+      <p>Track your typing journey — every keystroke counts.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Best WPM</div>
+        <div class="stat-value" id="stat-bestwpm">—<span class="stat-unit">wpm</span></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Avg Accuracy</div>
+        <div class="stat-value" id="stat-acc">—<span class="stat-unit">%</span></div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Tests Done</div>
+        <div class="stat-value" id="stat-tests">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Time Practiced</div>
+        <div class="stat-value" id="stat-time">0<span class="stat-unit">min</span></div>
+      </div>
+    </div>
+
+    <p class="section-title">WPM Over Time</p>
+    <div class="chart-container">
+      <canvas id="wpm-chart-home"></canvas>
+    </div>
+
+    <p class="section-title">Quick Start</p>
+    <div class="lesson-grid" id="home-quick-lessons"></div>
+  </div>
+
+  <!-- LESSONS PAGE -->
+  <div class="page" id="page-lessons">
+    <div class="page-header">
+      <h1>Structured Lessons<span class="accent-dot">.</span></h1>
+      <p>Master the keyboard step by step, from home row to full fluency.</p>
+    </div>
+    <div class="lesson-grid" id="all-lessons-grid"></div>
+  </div>
+
+  <!-- PRACTICE / TYPING -->
+  <div class="page" id="page-practice">
+    <div class="page-header">
+      <h1 id="practice-title">Free Practice<span class="accent-dot">.</span></h1>
+      <p id="practice-subtitle">Type the passage below as accurately and quickly as possible.</p>
+    </div>
+
+    <div class="typing-container" id="typing-box">
+      <div class="typing-meta">
+        <div class="typing-meta-left">
+          <div class="live-stat">
+            <span class="live-stat-label">WPM</span>
+            <span class="live-stat-val" id="live-wpm">0</span>
+          </div>
+          <div class="live-stat">
+            <span class="live-stat-label">Accuracy</span>
+            <span class="live-stat-val blue" id="live-acc">100%</span>
+          </div>
+          <div class="live-stat">
+            <span class="live-stat-label">Errors</span>
+            <span class="live-stat-val green" id="live-err">0</span>
+          </div>
+        </div>
+        <div class="timer-ring">
+          <svg viewBox="0 0 60 60" width="60" height="60">
+            <circle class="bg" cx="30" cy="30" r="26"/>
+            <circle class="fg" id="timer-circle" cx="30" cy="30" r="26"
+              stroke-dasharray="163.4" stroke-dashoffset="0"/>
+          </svg>
+          <span class="timer-val" id="timer-val">—</span>
+        </div>
+      </div>
+
+      <div class="text-display" id="text-display" onclick="focusInput()"></div>
+      <input type="text" id="typing-input" autocomplete="off" autocorrect="off"
+             autocapitalize="off" spellcheck="false">
+
+      <div class="click-to-start" id="start-prompt" onclick="startTyping()">
+        ▶ Click here or press any key to start
+      </div>
+
+      <div class="typing-controls">
+        <button class="btn btn-primary" onclick="restartTest()">↺ Restart</button>
+        <button class="btn btn-ghost" onclick="newText()">New Text</button>
+        <div class="mode-selector">
+          <button class="mode-btn active" onclick="setMode('time', this)">Timed</button>
+          <button class="mode-btn" onclick="setMode('words', this)">Words</button>
+          <button class="mode-btn" onclick="setMode('passage', this)">Passage</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="keyboard-section">
+      <p class="section-title">Keyboard Guide — <span id="finger-guide-char" style="color:var(--accent)">Start typing to highlight keys</span></p>
+      <div class="keyboard-visual" id="keyboard-visual"></div>
+      <div class="finger-guide" id="finger-guide"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS PAGE -->
+  <div class="page" id="page-progress">
+    <div class="page-header">
+      <h1>Your Progress<span class="accent-dot">.</span></h1>
+      <p>Detailed history and statistics from all your sessions.</p>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">WPM History (last 20 sessions)</div>
+      <canvas id="wpm-chart-progress"></canvas>
+    </div>
+    <p class="section-title">Session History</p>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <h1>Settings<span class="accent-dot">.</span></h1>
+      <p>Customize your KeyForge experience.</p>
+    </div>
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h3>Practice</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Show Keyboard</div>
+            <div class="setting-desc">Display on-screen keyboard guide</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="set-keyboard" checked onchange="saveSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Show Finger Hints</div>
+            <div class="setting-desc">Color dots for correct finger usage</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="set-fingers" checked onchange="saveSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Sound Effects</div>
+            <div class="setting-desc">Keystroke audio feedback</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="set-sound" onchange="saveSettings()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Timer Duration</div>
+          </div>
+          <select class="setting-select" id="set-timer" onchange="saveSettings()">
+            <option value="30">30s</option>
+            <option value="60" selected>60s</option>
+            <option value="120">120s</option>
+            <option value="300">5min</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Difficulty</div>
+          </div>
+          <select class="setting-select" id="set-difficulty" onchange="saveSettings()">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate" selected>Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-card">
+        <h3>Data</h3>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Reset All Progress</div>
+            <div class="setting-desc">Clear all saved statistics and history</div>
+          </div>
+          <button class="btn btn-ghost" onclick="resetAllData()" style="border-color:#f87171;color:#f87171">Reset</button>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Export Data</div>
+            <div class="setting-desc">Download progress as JSON</div>
+          </div>
+          <button class="btn btn-ghost" onclick="exportData()">Export</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <div class="result-title" id="result-title">⚡ Done!</div>
+    <div class="result-subtitle" id="result-sub">Here's how you did</div>
+    <div class="result-stats">
+      <div class="result-stat">
+        <div class="result-stat-val" id="res-wpm" style="color:var(--accent)">0</div>
+        <div class="result-stat-label">WPM</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-val" id="res-acc" style="color:var(--accent2)">0%</div>
+        <div class="result-stat-label">Accuracy</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-val" id="res-err" style="color:var(--accent3)">0</div>
+        <div class="result-stat-label">Errors</div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button class="btn btn-primary" onclick="restartTest(); closeResult()">Try Again</button>
+      <button class="btn btn-ghost" onclick="closeResult(); showPage('lessons')">Back to Lessons</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA & STATE
+// ============================================================
+let userData = {
+  bestWpm: 0,
+  totalTests: 0,
+  totalTimeSec: 0,
+  sessions: [], // {date, wpm, acc, errors, lesson, duration}
+  completedLessons: [],
+  streak: 0,
+  lastPracticeDate: null,
+  settings: {
+    keyboard: true,
+    fingers: true,
+    sound: false,
+    timer: 60,
+    difficulty: 'intermediate'
+  }
+};
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem('keyforge_data');
+    if (saved) userData = { ...userData, ...JSON.parse(saved) };
+  } catch(e) {}
+}
+function saveData() {
+  try { localStorage.setItem('keyforge_data', JSON.stringify(userData)); } catch(e) {}
+}
+
+// ============================================================
+// LESSONS DEFINITION
+// ============================================================
+const LESSONS = [
+  {
+    id: 'home-row', name: 'Home Row', level: 1,
+    desc: 'Master the foundation: A S D F J K L ;',
+    keys: 'asdfghjkl;',
+    texts: [
+      'aaa sss ddd fff jjj kkk lll ;;; asdf jkl; asdf jkl; fdsa ;lkj fads kladf jads',
+      'add fall ask fad lass flask glad hall all lass fall skald',
+      'gala flag lads glad flask lass fall gala fads flask hall'
+    ]
+  },
+  {
+    id: 'e-t', name: 'E & T Keys', level: 2,
+    desc: 'Expand to the most common letters in English',
+    keys: 'et',
+    texts: [
+      'set let jet get net wet the ate feet tell fell sell bell fell well',
+      'test best fest rest jest last fast test jest rest the set',
+      'eldest fastest tallest latest fastest sweetest fleets streets'
+    ]
+  },
+  {
+    id: 'r-i', name: 'R & I Keys', level: 3,
+    desc: 'Add R and I for an enormous vocabulary boost',
+    keys: 'ri',
+    texts: [
+      'ride fire hire tire wire dire ire rile girl grill drill frill',
+      'first drift rift sift lift list gist fist rift gift sift lift',
+      'stirred filtered tiered lifelike tireless interfered'
+    ]
+  },
+  {
+    id: 'top-row', name: 'Top Row', level: 4,
+    desc: 'Q W E R T Y U I O P — unlock the full top row',
+    keys: 'qwertyuiop',
+    texts: [
+      'quiet people query write power quite tower route outer upper',
+      'type ripe pipe wipe stripe gripe tripe viper diaper hyper',
+      'proportion projection description perception production'
+    ]
+  },
+  {
+    id: 'bottom-row', name: 'Bottom Row', level: 5,
+    desc: 'Z X C V B N M — complete the alphabet',
+    keys: 'zxcvbnm',
+    texts: [
+      'zone exam cave brave next move back zeal xray cave vibrant',
+      'combination vacation vacation ambition combination zone exam',
+      'maximize minimize recognize acknowledge mechanism organize'
+    ]
+  },
+  {
+    id: 'numbers', name: 'Number Row', level: 6,
+    desc: 'Master digits 1 through 0',
+    keys: '1234567890',
+    texts: [
+      '1234 5678 90 1024 2048 3.14 999 100 256 512 1000 2025',
+      '10 20 30 40 50 60 70 80 90 100 110 120 130 140 150',
+      'IP address 192.168.1.1 port 8080 zip 10001 phone 5551234'
+    ]
+  },
+  {
+    id: 'punctuation', name: 'Punctuation', level: 7,
+    desc: 'Commas, periods, apostrophes and more',
+    keys: '.,\'";:!?',
+    texts: [
+      "Hello, world! How are you? I'm fine, thanks. Let's go: now!",
+      "It's a beautiful day, isn't it? Yes, absolutely!",
+      "Wait; stop. Look: there's something there! Really? Yes!"
+    ]
+  },
+  {
+    id: 'capital', name: 'Capitals & Shift', level: 8,
+    desc: 'Proper capitalization and shift key mastery',
+    keys: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    texts: [
+      'Hello World. My Name Is Alex. I Live In New York City.',
+      'The Quick Brown Fox Jumps Over The Lazy Dog.',
+      'JavaScript Python TypeScript React Node Django Flask.'
+    ]
+  },
+  {
+    id: 'common-words', name: 'Common Words', level: 9,
+    desc: 'The 100 most common English words at speed',
+    keys: '',
+    texts: [
+      'the be to of and a in that have it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what',
+      'so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us'
+    ]
+  },
+  {
+    id: 'speed-burst', name: 'Speed Burst', level: 10,
+    desc: 'Push your limits with long-form real sentences',
+    keys: '',
+    texts: [
+      'The ability to type quickly and accurately is a valuable skill in the modern world, where most communication and work happens through keyboards.',
+      'Practice makes perfect, and consistent daily training will improve your typing speed far more effectively than occasional long sessions.',
+      'Touch typing, the technique of typing without looking at the keyboard, requires memorizing the position of every key through muscle memory.'
+    ]
+  },
+  {
+    id: 'code', name: 'Code Typing', level: 11,
+    desc: 'Special characters used in programming',
+    keys: '()[]{}',
+    texts: [
+      'function hello() { return "world"; } const x = [1, 2, 3];',
+      'if (x > 0) { console.log(x); } else { return null; }',
+      'const arr = [1, 2, 3].map(x => x * 2).filter(n => n > 2);'
+    ]
+  },
+  {
+    id: 'marathon', name: 'Marathon', level: 12,
+    desc: 'Long text endurance — the ultimate test',
+    keys: '',
+    texts: [
+      'In the beginning, learning to type feels awkward and slow. Your fingers seem to have minds of their own, reaching for wrong keys and stumbling over common words. But with patience and dedication, the keyboard slowly becomes an extension of your thoughts, and ideas flow from your mind to the screen with barely a conscious effort. This transformation does not happen overnight; it is the result of thousands of small repetitions, each one building a tiny thread of muscle memory.',
+    ]
+  }
+];
+
+// ============================================================
+// TYPING ENGINE
+// ============================================================
+let currentText = '';
+let currentPos = 0;
+let errors = 0;
+let totalKeystrokes = 0;
+let startTime = null;
+let timerInterval = null;
+let wpmInterval = null;
+let testActive = false;
+let testMode = 'time'; // 'time', 'words', 'passage'
+let testDuration = 60;
+let currentLesson = null;
+let timeLeft = 60;
+
+const PASSAGES = {
+  beginner: [
+    'the cat sat on the mat and the dog ran in the yard',
+    'she sells sea shells by the sea shore near the water',
+    'a quick brown fox jumps over the lazy dog today',
+    'I like to read books and listen to music every day'
+  ],
+  intermediate: [
+    'The ability to type quickly is a skill that improves with practice every single day.',
+    'Modern computers have transformed the way we work, communicate, and entertain ourselves.',
+    'Learning touch typing can significantly increase your productivity and reduce fatigue.',
+    'Reading books expands vocabulary and improves writing skills for all types of writers.'
+  ],
+  advanced: [
+    'The juxtaposition of technological advancement and philosophical introspection creates fascinating dilemmas.',
+    'Sophisticated algorithms process extraordinary quantities of information with remarkable efficiency and precision.',
+    'Entrepreneurial endeavors require perseverance, creativity, adaptability, and unwavering commitment to excellence.',
+    'The magnificent orchestral composition overwhelmed the distinguished audience with its breathtaking complexity.'
+  ]
+};
+
+function getPassage() {
+  const diff = userData.settings.difficulty;
+  const pool = PASSAGES[diff];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function setMode(mode, btn) {
+  testMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  restartTest();
+}
+
+function newText() {
+  if (currentLesson) {
+    const lesson = LESSONS.find(l => l.id === currentLesson);
+    if (lesson) {
+      currentText = lesson.texts[Math.floor(Math.random() * lesson.texts.length)];
+    }
+  } else {
+    currentText = getPassage();
+  }
+  restartTest(false);
+}
+
+function renderText() {
+  const display = document.getElementById('text-display');
+  display.innerHTML = currentText.split('').map((ch, i) => {
+    let cls = 'pending';
+    if (i < currentPos) {
+      cls = 'correct'; // simplified; errors stored separately
+    } else if (i === currentPos) {
+      cls = 'current';
+    }
+    return `<span class="char ${cls}" id="c${i}">${ch === ' ' ? '&nbsp;' : ch}</span>`;
+  }).join('');
+}
+
+function updateChar(idx, type) {
+  const el = document.getElementById('c' + idx);
+  if (el) el.className = 'char ' + type;
+}
+
+function startTyping() {
+  const prompt = document.getElementById('start-prompt');
+  prompt.style.display = 'none';
+  const input = document.getElementById('typing-input');
+  input.focus();
+  testActive = true;
+  startTime = Date.now();
+
+  testDuration = parseInt(userData.settings.timer);
+  timeLeft = testDuration;
+
+  if (testMode === 'time') {
+    const circumference = 163.4;
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      document.getElementById('timer-val').textContent = timeLeft;
+      const offset = circumference * (1 - timeLeft / testDuration);
+      document.getElementById('timer-circle').style.strokeDashoffset = offset;
+      if (timeLeft <= 0) finishTest();
+    }, 1000);
+    document.getElementById('timer-val').textContent = timeLeft;
+  } else {
+    document.getElementById('timer-val').textContent = '∞';
+  }
+
+  wpmInterval = setInterval(updateLiveStats, 500);
+}
+
+function handleInput(e) {
+  if (!testActive) {
+    startTyping();
+  }
+
+  const input = document.getElementById('typing-input');
+  const typed = input.value;
+
+  if (typed.length > currentPos) {
+    // typed a character
+    const expected = currentText[currentPos];
+    const got = typed[typed.length - 1];
+    totalKeystrokes++;
+    if (got === expected) {
+      updateChar(currentPos, 'correct');
+    } else {
+      updateChar(currentPos, 'wrong');
+      errors++;
+      document.getElementById('live-err').textContent = errors;
+      if (userData.settings.sound) playErrorSound();
+    }
+    currentPos++;
+    if (currentPos < currentText.length) {
+      updateChar(currentPos, 'current');
+    }
+    highlightKey(expected);
+  } else if (typed.length < currentPos) {
+    // backspace
+    currentPos--;
+    updateChar(currentPos + 1, 'pending');
+    updateChar(currentPos, 'current');
+    input.value = typed;
+  }
+
+  // Check completion
+  if ((testMode === 'words' || testMode === 'passage') && currentPos >= currentText.length) {
+    finishTest();
+  }
+}
+
+function updateLiveStats() {
+  if (!startTime) return;
+  const elapsed = (Date.now() - startTime) / 60000;
+  const wordsTyped = currentPos / 5;
+  const wpm = elapsed > 0 ? Math.round(wordsTyped / elapsed) : 0;
+  const acc = totalKeystrokes > 0 ? Math.round(((totalKeystrokes - errors) / totalKeystrokes) * 100) : 100;
+
+  document.getElementById('live-wpm').textContent = wpm;
+  document.getElementById('live-acc').textContent = acc + '%';
+}
+
+function finishTest() {
+  clearInterval(timerInterval);
+  clearInterval(wpmInterval);
+  testActive = false;
+
+  const elapsed = (Date.now() - startTime) / 60000;
+  const wordsTyped = currentPos / 5;
+  const wpm = elapsed > 0 ? Math.round(wordsTyped / elapsed) : 0;
+  const acc = totalKeystrokes > 0 ? Math.round(((totalKeystrokes - errors) / totalKeystrokes) * 100) : 100;
+
+  // Save session
+  const session = {
+    date: new Date().toISOString(),
+    wpm,
+    acc,
+    errors,
+    lesson: currentLesson || 'free',
+    duration: Math.round(elapsed * 60)
+  };
+  userData.sessions.unshift(session);
+  if (userData.sessions.length > 100) userData.sessions.pop();
+
+  if (wpm > userData.bestWpm) userData.bestWpm = wpm;
+  userData.totalTests++;
+  userData.totalTimeSec += session.duration;
+
+  // Mark lesson complete
+  if (currentLesson && !userData.completedLessons.includes(currentLesson)) {
+    if (wpm >= 20 && acc >= 80) {
+      userData.completedLessons.push(currentLesson);
+      if (wpm > 30) confetti();
+    }
+  }
+
+  // Streak
+  const today = new Date().toDateString();
+  if (userData.lastPracticeDate !== today) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    if (userData.lastPracticeDate === yesterday.toDateString()) {
+      userData.streak++;
+    } else if (userData.lastPracticeDate !== today) {
+      userData.streak = 1;
+    }
+    userData.lastPracticeDate = today;
+  }
+
+  saveData();
+  showResult(wpm, acc, errors);
+  updateDashboard();
+}
+
+function showResult(wpm, acc, err) {
+  document.getElementById('res-wpm').textContent = wpm;
+  document.getElementById('res-acc').textContent = acc + '%';
+  document.getElementById('res-err').textContent = err;
+
+  const titles = ['⚡ Blazing!', '✨ Nice!', '🎯 Solid!', '💪 Keep Going!'];
+  const t = wpm > 80 ? titles[0] : wpm > 50 ? titles[1] : wpm > 30 ? titles[2] : titles[3];
+  document.getElementById('result-title').textContent = t;
+
+  document.getElementById('result-overlay').classList.add('show');
+  if (wpm > 60) confetti();
+}
+
+function closeResult() {
+  document.getElementById('result-overlay').classList.remove('show');
+}
+
+function restartTest(resetText = true) {
+  clearInterval(timerInterval);
+  clearInterval(wpmInterval);
+  testActive = false;
+  currentPos = 0;
+  errors = 0;
+  totalKeystrokes = 0;
+  startTime = null;
+  timeLeft = parseInt(userData.settings.timer);
+
+  document.getElementById('timer-val').textContent = '—';
+  document.getElementById('timer-circle').style.strokeDashoffset = 0;
+  document.getElementById('live-wpm').textContent = '0';
+  document.getElementById('live-acc').textContent = '100%';
+  document.getElementById('live-err').textContent = '0';
+
+  const input = document.getElementById('typing-input');
+  input.value = '';
+
+  if (resetText && !currentLesson) currentText = getPassage();
+  else if (resetText && currentLesson) {
+    const lesson = LESSONS.find(l => l.id === currentLesson);
+    if (lesson) currentText = lesson.texts[Math.floor(Math.random() * lesson.texts.length)];
+  }
+
+  renderText();
+  document.getElementById('start-prompt').style.display = '';
+}
+
+function focusInput() {
+  document.getElementById('typing-input').focus();
+}
+
+// ============================================================
+// KEYBOARD VISUAL
+// ============================================================
+const KEY_LAYOUT = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','=','⌫'],
+  ['⇥','q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['⇪','a','s','d','f','g','h','j','k','l',';',"'",'↵'],
+  ['⇧','z','x','c','v','b','n','m',',','.','/','⇧'],
+  ['⌃','⌥','⌘','SPACE','⌘','⌥','⌃']
+];
+
+const KEY_WIDTHS = {
+  '⌫': 'wide-2', '⇥': 'wide-1', '\\': 'wide-1',
+  '⇪': 'wide-2', '↵': 'wide-2',
+  '⇧': 'wide-3', 'SPACE': 'wide-space',
+  '⌃': 'wide-1', '⌥': 'wide-1', '⌘': 'wide-1'
+};
+
+// Finger assignments (simplified: 0=pinky-left, 3=index-left, 4=index-right, 7=pinky-right)
+const FINGER_MAP = {
+  '`':0,'1':0,'q':0,'a':0,'z':0,
+  '2':1,'w':1,'s':1,'x':1,
+  '3':2,'e':2,'d':2,'c':2,
+  '4':3,'5':3,'r':3,'t':3,'f':3,'g':3,'v':3,'b':3,
+  '6':4,'7':4,'y':4,'u':4,'h':4,'j':4,'n':4,'m':4,
+  '8':5,'i':5,'k':5,',':5,
+  '9':6,'o':6,'l':6,'.':6,
+  '0':7,'-':7,'=':7,'p':7,'[':7,']':7,'\\':7,';':7,"'":7,'/':7,'⌫':7
+};
+
+const FINGER_NAMES = [
+  {label:'L. Pinky', color:'#ff6b6b', cls:'finger-l0'},
+  {label:'L. Ring', color:'#ffa96b', cls:'finger-l1'},
+  {label:'L. Middle', color:'#ffec6b', cls:'finger-l2'},
+  {label:'L. Index', color:'#6bffb8', cls:'finger-l3'},
+  {label:'R. Index', color:'#6bc8ff', cls:'finger-r0'},
+  {label:'R. Middle', color:'#b86bff', cls:'finger-r1'},
+  {label:'R. Ring', color:'#ff6bc8', cls:'finger-r2'},
+  {label:'R. Pinky', color:'#6bffec', cls:'finger-r3'},
+];
+
+function buildKeyboard() {
+  const kv = document.getElementById('keyboard-visual');
+  kv.innerHTML = '';
+  KEY_LAYOUT.forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'key-row';
+    row.forEach(k => {
+      const keyEl = document.createElement('div');
+      const w = KEY_WIDTHS[k] || '';
+      const fingerIdx = FINGER_MAP[k.toLowerCase()];
+      const fingerCls = fingerIdx !== undefined ? `finger-l${fingerIdx}` : '';
+      // remap for right hand
+      const fCls = fingerIdx !== undefined
+        ? (fingerIdx < 4 ? `finger-l${fingerIdx}` : `finger-r${fingerIdx-4}`)
+        : '';
+      keyEl.className = `key ${w} ${fCls} ${userData.settings.fingers ? 'show-finger' : ''}`;
+      keyEl.id = 'key-' + k;
+      keyEl.textContent = k === 'SPACE' ? '' : k;
+      rowDiv.appendChild(keyEl);
+    });
+    kv.appendChild(rowDiv);
+  });
+
+  // Build finger guide
+  const fg = document.getElementById('finger-guide');
+  fg.innerHTML = '';
+  FINGER_NAMES.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'finger-item';
+    item.innerHTML = `<div class="finger-dot" style="background:${f.color}"></div>${f.label}`;
+    fg.appendChild(item);
+  });
+}
+
+let lastHighlighted = null;
+function highlightKey(ch) {
+  if (lastHighlighted) {
+    const prev = document.getElementById('key-' + lastHighlighted);
+    if (prev) prev.classList.remove('highlight');
+    const prevUpper = document.getElementById('key-' + lastHighlighted.toUpperCase());
+    if (prevUpper) prevUpper.classList.remove('highlight');
+  }
+
+  const key = ch === ' ' ? 'SPACE' : ch.toLowerCase();
+  const el = document.getElementById('key-' + key);
+  if (el) {
+    el.classList.add('highlight');
+    lastHighlighted = key;
+    document.getElementById('finger-guide-char').textContent = `Next: "${ch}" — ` + getFingerName(key);
+  }
+}
+
+function getFingerName(key) {
+  const idx = FINGER_MAP[key.toLowerCase()];
+  if (idx === undefined) return '';
+  return idx < 4 ? FINGER_NAMES[idx].label : FINGER_NAMES[idx].label;
+}
+
+function flashKey(ch) {
+  const key = ch === ' ' ? 'SPACE' : ch;
+  const el = document.getElementById('key-' + key) || document.getElementById('key-' + key.toLowerCase());
+  if (el) {
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 80);
+  }
+}
+
+// ============================================================
+// NAVIGATION & PAGES
+// ============================================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.nav-tab');
+  const idx = ['home','lessons','practice','progress','settings'].indexOf(name);
+  if (tabs[idx]) tabs[idx].classList.add('active');
+
+  if (name === 'progress') renderProgress();
+  if (name === 'home') updateDashboard();
+}
+
+function openLesson(lessonId) {
+  currentLesson = lessonId;
+  const lesson = LESSONS.find(l => l.id === lessonId);
+  currentText = lesson.texts[0];
+
+  document.getElementById('practice-title').textContent = lesson.name + '.';
+  document.getElementById('practice-subtitle').textContent = lesson.desc;
+
+  showPage('practice');
+  restartTest(false);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function updateDashboard() {
+  document.getElementById('streak-display').textContent = userData.streak;
+  document.getElementById('stat-bestwpm').innerHTML =
+    userData.bestWpm > 0 ? userData.bestWpm + '<span class="stat-unit">wpm</span>' : '—';
+
+  if (userData.sessions.length > 0) {
+    const avgAcc = Math.round(userData.sessions.slice(0, 20).reduce((s, x) => s + x.acc, 0) / Math.min(20, userData.sessions.length));
+    document.getElementById('stat-acc').innerHTML = avgAcc + '<span class="stat-unit">%</span>';
+  }
+  document.getElementById('stat-tests').textContent = userData.totalTests;
+  document.getElementById('stat-time').innerHTML = Math.round(userData.totalTimeSec / 60) + '<span class="stat-unit">min</span>';
+
+  // Quick lessons (first 6)
+  const grid = document.getElementById('home-quick-lessons');
+  grid.innerHTML = LESSONS.slice(0, 6).map(l => lessonCardHtml(l)).join('');
+
+  drawWpmChart('wpm-chart-home');
+}
+
+function renderLessonsPage() {
+  const grid = document.getElementById('all-lessons-grid');
+  grid.innerHTML = LESSONS.map(l => lessonCardHtml(l)).join('');
+}
+
+function lessonCardHtml(lesson) {
+  const completed = userData.completedLessons.includes(lesson.id);
+  const levelIdx = LESSONS.indexOf(lesson);
+  const locked = levelIdx > 0 && !userData.completedLessons.includes(LESSONS[levelIdx - 1].id) && levelIdx > 1;
+  const progress = completed ? 100 : 0;
+
+  const badge = completed
+    ? '<span class="lesson-badge done">✓ Done</span>'
+    : locked
+      ? '<span class="lesson-badge locked-b">🔒 Locked</span>'
+      : '<span class="lesson-badge new-b">New</span>';
+
+  const clickAttr = locked ? '' : `onclick="openLesson('${lesson.id}')"`;
+
+  return `
+    <div class="lesson-card ${completed ? 'completed' : ''} ${locked ? 'locked' : ''}" ${clickAttr}>
+      ${badge}
+      <div class="lesson-num">Level ${lesson.level}</div>
+      <div class="lesson-name">${lesson.name}</div>
+      <div class="lesson-desc">${lesson.desc}</div>
+      <div class="lesson-progress-bar" style="width:${progress}%"></div>
+    </div>
+  `;
+}
+
+// ============================================================
+// PROGRESS PAGE
+// ============================================================
+function renderProgress() {
+  drawWpmChart('wpm-chart-progress');
+
+  const list = document.getElementById('history-list');
+  if (userData.sessions.length === 0) {
+    list.innerHTML = '<div class="empty-state">No sessions yet — go practice!</div>';
+    return;
+  }
+  list.innerHTML = userData.sessions.slice(0, 30).map(s => {
+    const d = new Date(s.date);
+    const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    return `
+      <div class="history-item">
+        <div>
+          <div class="lesson-name-h">${s.lesson === 'free' ? 'Free Practice' : (LESSONS.find(l => l.id === s.lesson)?.name || s.lesson)}</div>
+          <div class="date">${dateStr}</div>
+        </div>
+        <div class="h-stat"><span class="h-stat-val" style="color:var(--accent)">${s.wpm}</span><span class="h-stat-l">WPM</span></div>
+        <div class="h-stat"><span class="h-stat-val" style="color:var(--accent2)">${s.acc}%</span><span class="h-stat-l">Acc</span></div>
+        <div class="h-stat"><span class="h-stat-val" style="color:var(--accent3)">${s.errors}</span><span class="h-stat-l">Errors</span></div>
+        <div class="h-stat"><span class="h-stat-val" style="color:var(--correct)">${s.duration}s</span><span class="h-stat-l">Time</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function drawWpmChart(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const sessions = userData.sessions.slice(0, 20).reverse();
+  const W = canvas.offsetWidth || 800;
+  const H = 160;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  if (sessions.length < 2) {
+    ctx.fillStyle = '#6b6b80';
+    ctx.font = '14px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Complete more sessions to see your chart', W/2, H/2);
+    return;
+  }
+
+  const maxWpm = Math.max(...sessions.map(s => s.wpm), 50);
+  const pad = { t: 20, b: 30, l: 30, r: 20 };
+  const gW = W - pad.l - pad.r;
+  const gH = H - pad.t - pad.b;
+
+  // Grid lines
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+    const y = pad.t + gH * (1 - t);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  });
+
+  // Gradient fill
+  const pts = sessions.map((s, i) => ({
+    x: pad.l + (i / (sessions.length - 1)) * gW,
+    y: pad.t + gH * (1 - s.wpm / maxWpm)
+  }));
+
+  const grad = ctx.createLinearGradient(0, pad.t, 0, H);
+  grad.addColorStop(0, 'rgba(232,255,71,0.3)');
+  grad.addColorStop(1, 'rgba(232,255,71,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.forEach((p, i) => {
+    if (i > 0) {
+      const cp1x = pts[i-1].x + (p.x - pts[i-1].x) * 0.5;
+      ctx.bezierCurveTo(cp1x, pts[i-1].y, cp1x, p.y, p.x, p.y);
+    }
+  });
+  ctx.lineTo(pts[pts.length-1].x, H - pad.b);
+  ctx.lineTo(pts[0].x, H - pad.b);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else {
+      const cp1x = pts[i-1].x + (p.x - pts[i-1].x) * 0.5;
+      ctx.bezierCurveTo(cp1x, pts[i-1].y, cp1x, p.y, p.x, p.y);
+    }
+  });
+  ctx.strokeStyle = '#e8ff47';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dots
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8ff47';
+    ctx.fill();
+  });
+
+  // Labels
+  ctx.fillStyle = '#6b6b80';
+  ctx.font = '10px Space Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(maxWpm + ' wpm', pad.l + 4, pad.t + 12);
+  ctx.fillText('0', pad.l + 4, H - pad.b);
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function loadSettings() {
+  document.getElementById('set-keyboard').checked = userData.settings.keyboard !== false;
+  document.getElementById('set-fingers').checked = userData.settings.fingers !== false;
+  document.getElementById('set-sound').checked = !!userData.settings.sound;
+  document.getElementById('set-timer').value = userData.settings.timer || 60;
+  document.getElementById('set-difficulty').value = userData.settings.difficulty || 'intermediate';
+}
+
+function saveSettings() {
+  userData.settings.keyboard = document.getElementById('set-keyboard').checked;
+  userData.settings.fingers = document.getElementById('set-fingers').checked;
+  userData.settings.sound = document.getElementById('set-sound').checked;
+  userData.settings.timer = parseInt(document.getElementById('set-timer').value);
+  userData.settings.difficulty = document.getElementById('set-difficulty').value;
+  saveData();
+  buildKeyboard();
+}
+
+function resetAllData() {
+  if (confirm('This will erase ALL your progress. Are you sure?')) {
+    localStorage.removeItem('keyforge_data');
+    userData = {
+      bestWpm: 0, totalTests: 0, totalTimeSec: 0,
+      sessions: [], completedLessons: [], streak: 0, lastPracticeDate: null,
+      settings: { keyboard: true, fingers: true, sound: false, timer: 60, difficulty: 'intermediate' }
+    };
+    updateDashboard();
+    renderLessonsPage();
+    alert('Progress reset!');
+  }
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(userData, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'keyforge_progress.json';
+  a.click();
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function confetti() {
+  const colors = ['#e8ff47', '#47c8ff', '#ff6b47', '#4ade80', '#f472b6'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      top: ${Math.random() * -10}px;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+      animation-duration: ${1.5 + Math.random() * 2}s;
+      animation-delay: ${Math.random() * 0.5}s;
+      transform: rotate(${Math.random() * 360}deg);
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+}
+
+// ============================================================
+// SOUND
+// ============================================================
+let audioCtx;
+function playErrorSound() {
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = 200;
+    gain.gain.value = 0.1;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+// ============================================================
+// GLOBAL KEY LISTENER
+// ============================================================
+document.addEventListener('keydown', (e) => {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage || activePage.id !== 'page-practice') return;
+  if (e.key === 'Escape') { restartTest(); return; }
+  if (!testActive && e.key.length === 1) {
+    const prompt = document.getElementById('start-prompt');
+    if (prompt.style.display !== 'none') {
+      startTyping();
+    }
+  }
+  flashKey(e.key);
+});
+
+document.getElementById('typing-input').addEventListener('input', handleInput);
+document.getElementById('typing-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Backspace') {
+    // handled via input event
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  loadData();
+  loadSettings();
+  buildKeyboard();
+  currentText = getPassage();
+  renderText();
+  renderLessonsPage();
+  updateDashboard();
+}
+
+init();
+</script>
+</body>
+</html>
